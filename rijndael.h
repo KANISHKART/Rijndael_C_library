@@ -1,6 +1,7 @@
 /*
- * TODO: Add your name and student number here, along with
- *       a brief description of this code.
+ -- Author      : KANISHKAR THIRUNAVUKKARASU 
+ -- Student No  : D23124630
+ -- Description : AES Header File.
  */
 
 #ifndef RIJNDAEL_H
