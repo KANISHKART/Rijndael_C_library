@@ -101,57 +101,61 @@ void add_round_key(unsigned char *block, unsigned char *round_key) {
  * vector, containing the 11 round keys one after the other
  */
 unsigned char *expand_key(unsigned char *cipher_key) {
-
   unsigned char *output = (unsigned char *)malloc(BLOCK_SIZE * 11);
-
   int rcon_index=1;
   int row=0;
   int itr_index= BLOCK_SIZE;
-
+  int lastRow=3;
   for(int j=0;j<11;j++){
     //copying all key to expand_key array
     if(j==0){
         for(int i=0;i<16;i++)
           output[i]=cipher_key[i];
     }
-
     else{
-      //swap last column values
-      int rot[4] = {BLOCK_ACCESS(output,row+3,3),BLOCK_ACCESS(output,row+1,3),BLOCK_ACCESS(output,row+2,3),BLOCK_ACCESS(output,row,3)};
-
+      //circular switch
+      int rot[4] = {BLOCK_ACCESS(output,lastRow,1),BLOCK_ACCESS(output,lastRow,2),BLOCK_ACCESS(output,lastRow,3),BLOCK_ACCESS(output,lastRow,0)};
       //Replace rot array using sub bytes S-Box lookup table
+      
       for(int i=0;i<4;i++){
         rot[i]=sbox[rot[i]];
+        // printf("%d\t",rot[i]);
       }
-      
-
+        // printf("\n");
       for(int k=0;k<4;k++){
-
         // For 1st column for new key -> XOR with 1st column in previous 16 bytes ,  Rcon , sub bytes array
         if(k==0){
-          output[itr_index] = BLOCK_ACCESS(output, row  , 0) ^rcon[rcon_index++] ^ rot[0];
-          output[itr_index+(4*1)] = BLOCK_ACCESS(output, (row +( 4*1)) , 1) ^ rot[1];
-          output[itr_index+(4*2)] = BLOCK_ACCESS(output, (row + (4*2)) , 2) ^ rot[2];
-          output[itr_index+(4*3)] = BLOCK_ACCESS(output, (row + (4*3)) , 3) ^ rot[3];
+          output[itr_index] = BLOCK_ACCESS(output,row,0) ^ rcon[rcon_index++] ^ rot[0];
+          output[itr_index+1] = BLOCK_ACCESS(output,row,1) ^ rot[1];
+          output[itr_index+2] = BLOCK_ACCESS(output,row,2) ^ rot[2];
+          output[itr_index+3] = BLOCK_ACCESS(output,row,3) ^ rot[3];
+          printf("XOR1::%d\t%d\t%d\t%d\t\n",BLOCK_ACCESS(output,row,0),BLOCK_ACCESS(output,row,1),BLOCK_ACCESS(output,row,2),BLOCK_ACCESS(output,row,3));
+          printf("XOR2::%d\t%d\t%d\t%d\t\n",rot[0],rot[1],rot[2],rot[3]);
+
+          printf("Res::%d\t%d\t%d\t%d\t\n",output[itr_index],output[itr_index+1],output[itr_index+2],output[itr_index+3]);
+
+          row+=1;
+          itr_index+=4;
+          printf("----------------------------------------------------------\n");
+
         }
         else{
-          output[itr_index]       = BLOCK_ACCESS(output, itr_index-1, 0) ^ BLOCK_ACCESS(output, row , k); 
-          output[itr_index+(4*1)] = BLOCK_ACCESS(output, itr_index+(4*1)-1, 0) ^ BLOCK_ACCESS(output, row+1 , k);
-          output[itr_index+(4*2)] = BLOCK_ACCESS(output, itr_index+(4*2)-1, 0) ^ BLOCK_ACCESS(output, row+2 , k);
-          output[itr_index+(4*3)] = BLOCK_ACCESS(output, itr_index+(4*3)-1, 0) ^ BLOCK_ACCESS(output, row+3 , k);
+          output[itr_index]   = BLOCK_ACCESS(output,row,0) ^ output[itr_index-4]; 
+          output[itr_index+1] = BLOCK_ACCESS(output,row,1) ^ output[itr_index-3];
+          output[itr_index+2] = BLOCK_ACCESS(output,row,2) ^ output[itr_index-2];
+          output[itr_index+3] = BLOCK_ACCESS(output,row,3) ^ output[itr_index-1];
+          printf("XOR1::%d\t%d\t%d\t%d\t\n",BLOCK_ACCESS(output,row,0),BLOCK_ACCESS(output,row,1),BLOCK_ACCESS(output,row,2),BLOCK_ACCESS(output,row,3));
+          printf("XOR2::%d\t%d\t%d\t%d\t\n",output[itr_index-4],output[itr_index-3],output[itr_index-2],output[itr_index-1]);
+
+          printf("Res::%d\t%d\t%d\t%d\t\n",output[itr_index],output[itr_index+1],output[itr_index+2],output[itr_index+3]);
+          printf("----------------------------------------------------------\n");
+          itr_index+=4;
+          row+=1;
         }
-        itr_index+=1;
       }
-
-      // //changing itr_index pointer to next key
-      itr_index+=12;
-      row+=16;
-
-      printf("%d\n",itr_index);
-
+      lastRow+=4;
     }
   }
-
   return output;
 }
 
@@ -167,6 +171,18 @@ unsigned char *aes_encrypt_block(unsigned char *plaintext, unsigned char *key) {
   // printf("/n");
 
   unsigned char *exp_key = expand_key(key);
+
+  // for(int i=0;i<44;i++){
+  //   for(int j=0;j<4;j++){
+  //     printf("%d\t",BLOCK_ACCESS(exp_key,i,j));
+  //   }
+  //   printf("\n");
+  // }
+  // printf("%d\n",sbox[4]);
+  // printf("%d\n",sbox[8]);
+  // printf("%d\n",sbox[6]);
+  // printf("%d\n",sbox[99]);
+
   
   return output;
 }
