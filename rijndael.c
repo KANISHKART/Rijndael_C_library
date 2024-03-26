@@ -101,56 +101,58 @@ void add_round_key(unsigned char *block, unsigned char *round_key) {
  * vector, containing the 11 round keys one after the other
  */
 unsigned char *expand_key(unsigned char *cipher_key) {
-  // TODO: Implement me!
 
-  unsigned char *expand_key = (unsigned char *)malloc(BLOCK_SIZE * 11);
+  unsigned char *output = (unsigned char *)malloc(BLOCK_SIZE * 11);
 
   int rcon_index=1;
-  int vector_itr=16;
-  int start_index=3;
+  int row=0;
+  int itr_index= BLOCK_SIZE;
 
-  //iterate for 10 other keys generation
   for(int j=0;j<11;j++){
-
+    //copying all key to expand_key array
     if(j==0){
-        for(int i=0;i<16;i++){
-          expand_key[i]=cipher_key[i];
-      }
-
+        for(int i=0;i<16;i++)
+          output[i]=cipher_key[i];
     }
+
     else{
-
       //swap last column values
-      int rot[4]={cipher_key[start_index+(15)],cipher_key[start_index+(7)],cipher_key[start_index+(11)],cipher_key[start_index]};
+      int rot[4] = {BLOCK_ACCESS(output,row+3,3),BLOCK_ACCESS(output,row+1,3),BLOCK_ACCESS(output,row+2,3),BLOCK_ACCESS(output,row,3)};
 
-      //Replace rot array using AES S-Box lookup table
+      //Replace rot array using sub bytes S-Box lookup table
       for(int i=0;i<4;i++){
         rot[i]=sbox[rot[i]];
       }
+      
 
       for(int k=0;k<4;k++){
-        if(k=0){
-          expand_key[vector_itr] = cipher_key[k] ^ rot[0] ^rcon[rcon_index];
-          expand_key[vector_itr+(4*1)] = cipher_key[k+(4*1)] ^ rot[1];
-          expand_key[vector_itr+(4*2)] = cipher_key[k+(4*2)] ^ rot[2];
-          expand_key[vector_itr+(4*3)] = cipher_key[k+(4*3)] ^ rot[3];
+
+        // For 1st column for new key -> XOR with 1st column in previous 16 bytes ,  Rcon , sub bytes array
+        if(k==0){
+          output[itr_index] = BLOCK_ACCESS(output, row  , 0) ^rcon[rcon_index++] ^ rot[0];
+          output[itr_index+(4*1)] = BLOCK_ACCESS(output, (row +( 4*1)) , 1) ^ rot[1];
+          output[itr_index+(4*2)] = BLOCK_ACCESS(output, (row + (4*2)) , 2) ^ rot[2];
+          output[itr_index+(4*3)] = BLOCK_ACCESS(output, (row + (4*3)) , 3) ^ rot[3];
         }
         else{
-          expand_key[vector_itr] = expand_key[vector_itr-1] ^ cipher_key[k]; 
-          expand_key[vector_itr+(4*1)] = expand_key[(vector_itr+(4*1))-1] ^ cipher_key[k+(4*1)];
-          expand_key[vector_itr+(4*2)] = expand_key[(vector_itr+(4*2))-1] ^ cipher_key[k+(4*2)];
-          expand_key[vector_itr+(4*3)] = expand_key[(vector_itr+(4*3))-1] ^ cipher_key[k+(4*3)];
+          output[itr_index]       = BLOCK_ACCESS(output, itr_index-1, 0) ^ BLOCK_ACCESS(output, row , k); 
+          output[itr_index+(4*1)] = BLOCK_ACCESS(output, itr_index+(4*1)-1, 0) ^ BLOCK_ACCESS(output, row+1 , k);
+          output[itr_index+(4*2)] = BLOCK_ACCESS(output, itr_index+(4*2)-1, 0) ^ BLOCK_ACCESS(output, row+2 , k);
+          output[itr_index+(4*3)] = BLOCK_ACCESS(output, itr_index+(4*3)-1, 0) ^ BLOCK_ACCESS(output, row+3 , k);
         }
-        vector_itr+=1;
+        itr_index+=1;
       }
 
-      vector_itr+=13;
-      start_index+=13;
+      // //changing itr_index pointer to next key
+      itr_index+=12;
+      row+=16;
+
+      printf("%d\n",itr_index);
 
     }
   }
 
-  return expand_key;
+  return output;
 }
 
 /*
@@ -164,9 +166,8 @@ unsigned char *aes_encrypt_block(unsigned char *plaintext, unsigned char *key) {
   // add_round_key(plaintext,key);
   // printf("/n");
 
-  // int val[2][2]={1,2,3,4};
-  printf("%d",BLOCK_ACCESS(plaintext,0,1));
-
+  unsigned char *exp_key = expand_key(key);
+  
   return output;
 }
 
