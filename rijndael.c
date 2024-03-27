@@ -176,22 +176,17 @@ unsigned char *aes_encrypt_block(unsigned char *plaintext, unsigned char *key) {
   // TODO: Implement me!
   unsigned char *output =
       (unsigned char *)malloc(sizeof(unsigned char) * BLOCK_SIZE);
-  // add_round_key(plaintext,key);
-  // printf("/n");
 
   unsigned char *exp_key = expand_key(key);
 
-  for(int i=0;i<44;i++){
-    for(int j=0;j<4;j++){
-      printf("%d\t",BLOCK_ACCESS(exp_key,i,j));
-    }
-    printf("\n");
-  }
-  // printf("%d\n",sbox[4]);
-  // printf("%d\n",sbox[8]);
-  // printf("%d\n",sbox[6]);
-  // printf("%d\n",sbox[99]);
+  add_round_key(plaintext,key);
 
+  // for(int i=0;i<44;i++){
+  //   for(int j=0;j<4;j++){
+  //     printf("%d\t",BLOCK_ACCESS(exp_key,i,j));
+  //   }
+  //   printf("\n");
+  // }
   
   return output;
 }
