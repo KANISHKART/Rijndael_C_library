@@ -58,7 +58,9 @@ unsigned char rcon[32] ={
  * Operations used when encrypting a block
  */
 void sub_bytes(unsigned char *block) {
-  // TODO: Implement me!
+  for(int i=0;i<4;i++){
+    block[i]=sbox[block[i]];
+  }
 }
 
 void shift_rows(unsigned char *block) {
@@ -88,11 +90,12 @@ void invert_mix_columns(unsigned char *block) {
  * This operation is shared between encryption and decryption
  */
 void add_round_key(unsigned char *block, unsigned char *round_key) {
-  int n=BLOCK_SIZE;
 
+  int n=BLOCK_SIZE;
   for(int i=0;i<n;i++){
     block[i]^=round_key[i];
   }
+
 }
  
 /*
@@ -129,12 +132,10 @@ unsigned char *expand_key(unsigned char *cipher_key) {
     else{
 
       //Circular switch for ROT word i.e., last column in the current key
-      int rot[4] = {BLOCK_ACCESS(output,lastRow,1),BLOCK_ACCESS(output,lastRow,2),BLOCK_ACCESS(output,lastRow,3),BLOCK_ACCESS(output,lastRow,0)};
+      char rot[4] = {BLOCK_ACCESS(output,lastRow,1),BLOCK_ACCESS(output,lastRow,2),BLOCK_ACCESS(output,lastRow,3),BLOCK_ACCESS(output,lastRow,0)};
      
       //Replace ROT array using SubBytes S-Box lookup table
-      for(int i=0;i<4;i++){
-        rot[i]=sbox[rot[i]];
-      }
+      sub_bytes(rot);
 
       // iterate each key matrix (4 X 4) here in the loop
       for(int k=0;k<4;k++){
@@ -161,7 +162,7 @@ unsigned char *expand_key(unsigned char *cipher_key) {
       //updating base pointer to recently generated key 
       lastRow+=4;
     }
-    
+
   }
 
   return output;
@@ -180,12 +181,12 @@ unsigned char *aes_encrypt_block(unsigned char *plaintext, unsigned char *key) {
 
   unsigned char *exp_key = expand_key(key);
 
-  // for(int i=0;i<44;i++){
-  //   for(int j=0;j<4;j++){
-  //     printf("%d\t",BLOCK_ACCESS(exp_key,i,j));
-  //   }
-  //   printf("\n");
-  // }
+  for(int i=0;i<44;i++){
+    for(int j=0;j<4;j++){
+      printf("%d\t",BLOCK_ACCESS(exp_key,i,j));
+    }
+    printf("\n");
+  }
   // printf("%d\n",sbox[4]);
   // printf("%d\n",sbox[8]);
   // printf("%d\n",sbox[6]);
