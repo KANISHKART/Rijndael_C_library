@@ -14,7 +14,7 @@ void print_128bit_block(unsigned char *block) {
 
       if (value < 100) printf(" ");
 
-      printf("%d", value);
+      printf("%d\t", value);
     }
     printf("\n");
   }

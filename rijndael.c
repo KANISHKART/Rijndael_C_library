@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include "rijndael.h"
 
+#define AES_ROUND 10
+
 unsigned char sbox[256] =   {
     0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76, 
     0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0, 
@@ -57,18 +59,56 @@ unsigned char rcon[32] ={
 /*
  * Operations used when encrypting a block
  */
-void sub_bytes(unsigned char *block) {
-  for(int i=0;i<4;i++){
+
+
+// Substituting the elemenets from S-BOX lookup table.
+void sub_bytes(unsigned char *block, int length) {
+  for(int i=0;i<length;i++){
     block[i]=sbox[block[i]];
   }
 }
 
+// This function shifts the values in each row of the block, considering the block as a transposed matrix.
+// Since the block is represented as a transposed matrix, row-wise shifting corresponds to column-wise shifting in the original matrix.
 void shift_rows(unsigned char *block) {
-  // TODO: Implement me!
+
+  unsigned char temp;
+
+  //Row 1
+  temp=block[1];
+  block[1]=block[5], block[5]=block[9], block[9]=block[13], block[13]=temp;
+
+  //Row 2
+  temp=block[2];
+  block[2]=block[10], block[10]=temp;
+  temp=block[6];
+  block[6]=block[14], block[14]=temp;
+
+  //Row
+  temp=block[15];
+  block[15]=block[11], block[11]= block[7], block[7]=block[3],block[3]=temp;
+
 }
 
-void mix_columns(unsigned char *block) {
-  // TODO: Implement me!
+unsigned char xtime(unsigned char x){
+	return (x & 0x80) ? ((x << 1) ^ 0x1b) : (x<<1);
+}
+
+// The below implementation is as per https://cs.ru.nl/~joan/papers/JDA_VRI_Rijndael_2002.pdf section 4.1.2 (Design of Rijndael)
+
+void mixColumns(unsigned char *block){
+	unsigned char i, a, b, c, d, e;
+	
+	// Processing one column at a time 
+	for(i = 0; i < 16; i+=4)
+	{
+		a = block[i]; b =block[i+1]; c = block[i+2]; d = block[i+3];
+		e = a ^ b ^ c ^ d;
+		block[i]   ^= e ^ xtime(a^b);
+		block[i+1] ^= e ^ xtime(b^c);
+		block[i+2] ^= e ^ xtime(c^d);
+		block[i+3] ^= e ^ xtime(d^a);
+	}
 }
 
 /*
@@ -89,11 +129,11 @@ void invert_mix_columns(unsigned char *block) {
 /*
  * This operation is shared between encryption and decryption
  */
-void add_round_key(unsigned char *block, unsigned char *round_key) {
-
-  int n=BLOCK_SIZE;
-  for(int i=0;i<n;i++){
-    block[i]^=round_key[i];
+void add_round_key(unsigned char *block, unsigned char *round_key, int startIndex, int endIndex) {
+  int keyStart=0;
+  for(int i=startIndex;i<endIndex;i++){
+    block[keyStart]^=round_key[i];
+    keyStart++;
   }
 
 }
@@ -105,42 +145,42 @@ void add_round_key(unsigned char *block, unsigned char *round_key) {
  */
 unsigned char *expand_key(unsigned char *cipher_key) {
 
-  //setting size to accomodate 11 round keys
+  // Setting size to accomodate 11 round keys
   unsigned char *output = (unsigned char *)malloc(BLOCK_SIZE * 11);
 
   int rcon_index=1;
 
-  //to iterate each rows
+  // To iterate each rows
   int row=0;
 
-  //starting point of value
+  // Starting point of value
   int itr_index= BLOCK_SIZE;
 
-  //base pointer on last row in master key
+  // Base pointer on last row in master key
   int lastRow=3;
 
-  //iterating 11 times to expand the keys
+  // Iterating 11 times to expand the keys
   for(int j=0;j<11;j++){
 
-    //copying all key to expand_key array
+    // Copying all key to expand_key array
     if(j==0){
         for(int i=0;i<16;i++)
           output[i]=cipher_key[i];
     }
 
-    //expanding logic for remaining 10 keys from previous one.
+    // Expanding logic for remaining 10 keys from previous one.
     else{
 
-      //Circular switch for ROT word i.e., last column in the current key
+      // Circular switch for ROT word i.e., last column in the current key
       char rot[4] = {BLOCK_ACCESS(output,lastRow,1),BLOCK_ACCESS(output,lastRow,2),BLOCK_ACCESS(output,lastRow,3),BLOCK_ACCESS(output,lastRow,0)};
      
-      //Replace ROT array using SubBytes S-Box lookup table
-      sub_bytes(rot);
+      // Replacing ROT array elements from S-BOX lookup table values
+      sub_bytes(rot,4);
 
-      // iterate each key matrix (4 X 4) here in the loop
+      // Iterate each key matrix (4 X 4) here in the loop
       for(int k=0;k<4;k++){
         
-        if(k==0){ // last row ⊕ RCON ⊕ ROT  
+        if(k==0){ // Last row ⊕ RCON ⊕ ROT  
           output[itr_index]   = BLOCK_ACCESS(output,row,0) ^ rcon[rcon_index++] ^ rot[0]; // Rcon XOR for rest is 0 so, XOR the 1st column
           output[itr_index+1] = BLOCK_ACCESS(output,row,1) ^ rot[1];
           output[itr_index+2] = BLOCK_ACCESS(output,row,2) ^ rot[2];
@@ -148,7 +188,7 @@ unsigned char *expand_key(unsigned char *cipher_key) {
           row+=1;
           itr_index+=4;
         }
-        else{ // previous row ⊕ similar previous key row
+        else{ // Previous row ⊕ similar previous key row
           output[itr_index]   = BLOCK_ACCESS(output,row,0) ^ output[itr_index-4]; 
           output[itr_index+1] = BLOCK_ACCESS(output,row,1) ^ output[itr_index-3];
           output[itr_index+2] = BLOCK_ACCESS(output,row,2) ^ output[itr_index-2];
@@ -159,7 +199,7 @@ unsigned char *expand_key(unsigned char *cipher_key) {
         }
       }
 
-      //updating base pointer to recently generated key 
+      // Updating base pointer to recently generated key 
       lastRow+=4;
     }
 
@@ -174,20 +214,36 @@ unsigned char *expand_key(unsigned char *cipher_key) {
  */
 unsigned char *aes_encrypt_block(unsigned char *plaintext, unsigned char *key) {
   // TODO: Implement me!
+
+  int expandKey_start_index=0;
+  int expandKey_last_index=16;
+
   unsigned char *output =
       (unsigned char *)malloc(sizeof(unsigned char) * BLOCK_SIZE);
+  
+  for(int i=0;i< BLOCK_SIZE;i++){
+    output[i]=plaintext[i];
+  }
 
   unsigned char *exp_key = expand_key(key);
 
-  add_round_key(plaintext,key);
+  add_round_key(output,key,expandKey_start_index,expandKey_last_index);
+ 
+  //iterating 10 time as this is 128 bit 
+  for(int i=1;i<AES_ROUND;i++){
+    sub_bytes(output, BLOCK_SIZE);
+    shift_rows(output);
+    mixColumns(output);
+    expandKey_start_index+=16;
+    expandKey_last_index+=16;
+    add_round_key(output,exp_key,expandKey_start_index,expandKey_last_index);
+  }
+  sub_bytes(output, BLOCK_SIZE);
+  shift_rows(output);
+  expandKey_start_index+=16;
+  expandKey_last_index+=16;
+  add_round_key(output,exp_key,expandKey_start_index,expandKey_last_index);
 
-  // for(int i=0;i<44;i++){
-  //   for(int j=0;j<4;j++){
-  //     printf("%d\t",BLOCK_ACCESS(exp_key,i,j));
-  //   }
-  //   printf("\n");
-  // }
-  
   return output;
 }
 
