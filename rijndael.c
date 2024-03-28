@@ -94,8 +94,12 @@ unsigned char xtime(unsigned char x){
 	return (x & 0x80) ? ((x << 1) ^ 0x1b) : (x<<1);
 }
 
-// The below implementation is as per https://cs.ru.nl/~joan/papers/JDA_VRI_Rijndael_2002.pdf section 4.1.2 (Design of Rijndael)
 
+unsigned char inverted_xtime(unsigned char x){
+	return (x & 0x1) ? ((x >> 1) ^ 0x1b) : (x>>1);
+}
+
+// The below implementation is as per https://cs.ru.nl/~joan/papers/JDA_VRI_Rijndael_2002.pdf section 4.1.2 (Design of Rijndael)
 void mixColumns(unsigned char *block){
 	unsigned char i, a, b, c, d, e;
 	
@@ -114,16 +118,44 @@ void mixColumns(unsigned char *block){
 /*
  * Operations used when decrypting a block
  */
-void invert_sub_bytes(unsigned char *block) {
-  // TODO: Implement me!
+void invert_sub_bytes(unsigned char *block,  int length) {
+   for(int i=0;i<length;i++){
+    block[i]=inverted_s_box[block[i]];
+  }
 }
 
 void invert_shift_rows(unsigned char *block) {
-  // TODO: Implement me!
+  unsigned char temp;
+
+  //Row 1
+  temp=block[13];
+  block[13]=block[9], block[9]=block[5], block[5]= block[1], block[1]=temp;
+
+  //Row 2
+  temp=block[10];
+  block[10]=block[2], block[2]=temp;
+  temp=block[14];
+  block[14]=block[6], block[6]=temp;
+
+  //Row 3
+  temp=block[3];
+   block[3]=block[7], block[7]=block[11], block[11]= block[15], block[15]= temp;
 }
 
 void invert_mix_columns(unsigned char *block) {
-  // TODO: Implement me!
+  unsigned char i, a, b, c, d, e, f;
+    
+    // Processing one column at a time 
+    for(i = 0; i < 16; i+=4)
+    {
+        a = block[i]; b =block[i+1]; c = block[i+2]; d = block[i+3];
+        e = a ^ b ^ c ^ d;
+        f = inverted_xtime(e);
+        block[i]   ^= f ^ xtime(a^b) ^ a;
+        block[i+1] ^= f ^ xtime(b^c) ^ b;
+        block[i+2] ^= f ^ xtime(c^d) ^ c;
+        block[i+3] ^= f ^ xtime(d^a) ^ d;
+    }
 }
 
 /*
@@ -135,7 +167,6 @@ void add_round_key(unsigned char *block, unsigned char *round_key, int startInde
     block[keyStart]^=round_key[i];
     keyStart++;
   }
-
 }
  
 /*
@@ -213,7 +244,6 @@ unsigned char *expand_key(unsigned char *cipher_key) {
  * header file should go here
  */
 unsigned char *aes_encrypt_block(unsigned char *plaintext, unsigned char *key) {
-  // TODO: Implement me!
 
   int expandKey_start_index=0;
   int expandKey_last_index=16;
@@ -247,10 +277,45 @@ unsigned char *aes_encrypt_block(unsigned char *plaintext, unsigned char *key) {
   return output;
 }
 
+/*
+ * The implementations of the functions declared in the
+ * header file should go here
+ */
 unsigned char *aes_decrypt_block(unsigned char *ciphertext,
                                  unsigned char *key) {
-  // TODO: Implement me!
+                                  
+  int expandKey_start_index= 160;
+  int expandKey_last_index= 176;
+
   unsigned char *output =
       (unsigned char *)malloc(sizeof(unsigned char) * BLOCK_SIZE);
+  
+  for(int i=0;i< BLOCK_SIZE;i++){
+    output[i]=ciphertext[i];
+  }
+
+  unsigned char *exp_key = expand_key(key);
+  
+  add_round_key(output, exp_key, expandKey_start_index, expandKey_last_index);
+  for(int i=0;i<4;i++){
+      for(int j=0;j<4;j++){
+        printf("%d\t",BLOCK_ACCESS(output,i,j));
+      }
+      printf("\n");
+    }
+  invert_shift_rows(output);
+  invert_sub_bytes(output, BLOCK_SIZE);
+  
+ 
+  //iterating 10 time as this is 128 bit 
+  for(int i=AES_ROUND;i>0;i--){
+    expandKey_start_index-=16;
+    expandKey_last_index-=16;
+    add_round_key(output,exp_key,expandKey_start_index,expandKey_last_index);
+    invert_mix_columns(output);
+    invert_shift_rows(output);
+    invert_sub_bytes(output, BLOCK_SIZE);
+  }
+
   return output;
 }
