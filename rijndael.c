@@ -68,6 +68,15 @@ void sub_bytes(unsigned char *block, int length) {
   }
 }
 
+/*
+ * Operations used when decrypting a block
+ */
+void invert_sub_bytes(unsigned char *block,  int length) {
+   for(int i=0;i<length;i++){
+    block[i]=inverted_s_box[block[i]];
+  }
+}
+
 // This function shifts the values in each row of the block, considering the block as a transposed matrix.
 // Since the block is represented as a transposed matrix, row-wise shifting corresponds to column-wise shifting in the original matrix.
 void shift_rows(unsigned char *block) {
@@ -90,39 +99,6 @@ void shift_rows(unsigned char *block) {
 
 }
 
-unsigned char xtime(unsigned char x){
-	return (x & 0x80) ? ((x << 1) ^ 0x1b) : (x<<1);
-}
-
-
-unsigned char inverted_xtime(unsigned char x){
-	return (x & 0x1) ? ((x >> 1) ^ 0x1b) : (x>>1);
-}
-
-// The below implementation is as per https://cs.ru.nl/~joan/papers/JDA_VRI_Rijndael_2002.pdf section 4.1.2 (Design of Rijndael)
-void mixColumns(unsigned char *block){
-	unsigned char i, a, b, c, d, e;
-	
-	// Processing one column at a time 
-	for(i = 0; i < 16; i+=4)
-	{
-		a = block[i]; b =block[i+1]; c = block[i+2]; d = block[i+3];
-		e = a ^ b ^ c ^ d;
-		block[i]   ^= e ^ xtime(a^b);
-		block[i+1] ^= e ^ xtime(b^c);
-		block[i+2] ^= e ^ xtime(c^d);
-		block[i+3] ^= e ^ xtime(d^a);
-	}
-}
-
-/*
- * Operations used when decrypting a block
- */
-void invert_sub_bytes(unsigned char *block,  int length) {
-   for(int i=0;i<length;i++){
-    block[i]=inverted_s_box[block[i]];
-  }
-}
 
 void invert_shift_rows(unsigned char *block) {
   unsigned char temp;
@@ -142,20 +118,57 @@ void invert_shift_rows(unsigned char *block) {
    block[3]=block[7], block[7]=block[11], block[11]= block[15], block[15]= temp;
 }
 
-void invert_mix_columns(unsigned char *block) {
-  unsigned char i, a, b, c, d, e, f;
-    
-    // Processing one column at a time 
-    for(i = 0; i < 16; i+=4)
-    {
-        a = block[i]; b =block[i+1]; c = block[i+2]; d = block[i+3];
-        e = a ^ b ^ c ^ d;
-        f = inverted_xtime(e);
-        block[i]   ^= f ^ xtime(a^b) ^ a;
-        block[i+1] ^= f ^ xtime(b^c) ^ b;
-        block[i+2] ^= f ^ xtime(c^d) ^ c;
-        block[i+3] ^= f ^ xtime(d^a) ^ d;
+unsigned char Multiply(unsigned char x, unsigned char y) {
+    unsigned char result = 0;
+    while (y) {
+        if (y & 0x01)
+            result ^= x;
+        if (x & 0x80)
+            x = (x << 1) ^ 0x1B;
+        else
+            x <<= 1;
+        y >>= 1;
     }
+    return result;
+}
+
+/*02 03 01 01
+01 02 03 01
+01 01 02 03
+03 01 01 02*/
+void mixColumns(unsigned char *state) {
+    unsigned char temp[16];
+
+    for (int c = 0; c < 4; ++c) {
+        temp[4 * c + 0] = Multiply(0x02, state[4 * c + 0]) ^ Multiply(0x03, state[4 * c + 1]) ^ state[4 * c + 2] ^ state[4 * c + 3];
+        temp[4 * c + 1] = state[4 * c + 0] ^ Multiply(0x02, state[4 * c + 1]) ^ Multiply(0x03, state[4 * c + 2]) ^ state[4 * c + 3];
+        temp[4 * c + 2] = state[4 * c + 0] ^ state[4 * c + 1] ^ Multiply(0x02, state[4 * c + 2]) ^ Multiply(0x03, state[4 * c + 3]);
+        temp[4 * c + 3] = Multiply(0x03, state[4 * c + 0]) ^ state[4 * c + 1] ^ state[4 * c + 2] ^ Multiply(0x02, state[4 * c + 3]);
+    }
+
+    for (int i = 0; i < 16; ++i)
+        state[i] = temp[i];
+}
+
+
+/*
+0e 0b 0d 09
+09 0e 0b 0d
+0d 09 0e 0b
+0b 0d 09 0e
+*/
+void invert_mix_columns(unsigned char *state) {
+    unsigned char temp[16];
+
+    for (int c = 0; c < 4; ++c) {
+        temp[4 * c + 0] = Multiply(0x0e, state[4 * c + 0]) ^ Multiply(0x0b, state[4 * c + 1]) ^ Multiply(0x0d, state[4 * c + 2]) ^ Multiply(0x09, state[4 * c + 3]);
+        temp[4 * c + 1] = Multiply(0x09, state[4 * c + 0]) ^ Multiply(0x0e, state[4 * c + 1]) ^ Multiply(0x0b, state[4 * c + 2]) ^ Multiply(0x0d, state[4 * c + 3]);
+        temp[4 * c + 2] = Multiply(0x0d, state[4 * c + 0]) ^ Multiply(0x09, state[4 * c + 1]) ^ Multiply(0x0e, state[4 * c + 2]) ^ Multiply(0x0b, state[4 * c + 3]);
+        temp[4 * c + 3] = Multiply(0x0b, state[4 * c + 0]) ^ Multiply(0x0d, state[4 * c + 1]) ^ Multiply(0x09, state[4 * c + 2]) ^ Multiply(0x0e, state[4 * c + 3]);
+    }
+
+    for (int i = 0; i < 16; ++i)
+        state[i] = temp[i];
 }
 
 /*
@@ -297,18 +310,11 @@ unsigned char *aes_decrypt_block(unsigned char *ciphertext,
   unsigned char *exp_key = expand_key(key);
   
   add_round_key(output, exp_key, expandKey_start_index, expandKey_last_index);
-  for(int i=0;i<4;i++){
-      for(int j=0;j<4;j++){
-        printf("%d\t",BLOCK_ACCESS(output,i,j));
-      }
-      printf("\n");
-    }
   invert_shift_rows(output);
   invert_sub_bytes(output, BLOCK_SIZE);
   
- 
   //iterating 10 time as this is 128 bit 
-  for(int i=AES_ROUND;i>0;i--){
+  for(int i=AES_ROUND;i>1;i--){
     expandKey_start_index-=16;
     expandKey_last_index-=16;
     add_round_key(output,exp_key,expandKey_start_index,expandKey_last_index);
@@ -316,6 +322,15 @@ unsigned char *aes_decrypt_block(unsigned char *ciphertext,
     invert_shift_rows(output);
     invert_sub_bytes(output, BLOCK_SIZE);
   }
+  // for(int i=0;i<4;i++){
+  //     for(int j=0;j<4;j++){
+  //       printf("%d\t",BLOCK_ACCESS(output,i,j));
+  //     }
+  //     printf("\n");
+  // }
+  expandKey_start_index-=16;
+  expandKey_last_index-=16;
+  add_round_key(output,exp_key,expandKey_start_index,expandKey_last_index);
 
   return output;
 }
