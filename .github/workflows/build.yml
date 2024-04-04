@@ -14,3 +14,4 @@ jobs:
           make
       - name: Test the code
         uses: python3 test.py
+    uses: ./.github/actions/my-action
