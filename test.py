@@ -1,6 +1,6 @@
 import unittest
 import ctypes
-from aes.aes import *
+from aes import *
  
 # importing .so file after building AES in C using makefile
 c_aes = ctypes.CDLL('./rijndael.so')
