@@ -1,3 +1,4 @@
+import unittest
 import ctypes
 from aes.aes import *
  
@@ -20,20 +21,33 @@ c_aes.aes_encrypt_block.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINT
 # the below line sets the response type for the aes_encrypt_block function
 c_aes.aes_encrypt_block.restype = ctypes.POINTER(ctypes.c_ubyte)
 
-def c_aes_encrypt_block(plaintext, key):
-    
-    # Converting plaintext & key into ctypes arrays
-    plaintext_arr = (ctypes.c_ubyte * len(plaintext))(*plaintext)
-    key_arr = (ctypes.c_ubyte * len(key))(*key)
 
-    # Calling the AES encrypt function in main.c
-    encrypted_data = c_aes.aes_encrypt_block(plaintext_arr, key_arr)
+# print(c_aes_encrypt_block(b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F',b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63'))
 
-    # Converting the encrypted data back to byte
-    encrypted_bytes = bytes(encrypted_data[:16]) 
+# print(AES(b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63').encrypt_block(b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F'))
 
-    return encrypted_bytes
 
-print(c_aes_encrypt_block(b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F',b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63'))
+class TestEncrypt(unittest.TestCase):
 
-print(AES(b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63').encrypt_block(b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F'))
+    def test_c_aes_encrypt_block(self):
+        
+        plaintext= b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F'
+        
+        key= b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63'
+        
+        # Converting plaintext & key into ctypes arrays
+        plaintext_arr = (ctypes.c_ubyte * len(plaintext))(*plaintext)
+        key_arr = (ctypes.c_ubyte * len(key))(*key)
+
+        # Calling the AES encrypt function in main.c
+        encrypted_data = c_aes.aes_encrypt_block(plaintext_arr, key_arr)
+
+        # Converting the encrypted data back to byte
+        c_encrypted_bytes = bytes(encrypted_data[:16]) 
+        
+        py_encrypted_bytes=AES(key).encrypt_block(plaintext)
+
+        self.assertEqual(c_encrypted_bytes, py_encrypted_bytes)
+        
+if __name__ == '__main__':
+    unittest.main()
