@@ -1,6 +1,9 @@
 import unittest
 import ctypes
 from aes.aes import *
+from aes.aes import bytes2matrix
+
+
  
 # importing .so file after building AES in C using makefile
 c_aes = ctypes.CDLL('./rijndael.so')
@@ -17,13 +20,32 @@ c_aes = ctypes.CDLL('./rijndael.so')
 # the below line sets the args type for the aes_encrypt_block function
 c_aes.aes_encrypt_block.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte)]
 c_aes.aes_decrypt_block.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte)]
-
+c_aes.expand_key.argtypes=[ctypes.POINTER(ctypes.c_ubyte)]
 
 # the below line sets the response type for the aes_encrypt_block function
 c_aes.aes_encrypt_block.restype = ctypes.POINTER(ctypes.c_ubyte)
 c_aes.aes_decrypt_block.restype = ctypes.POINTER(ctypes.c_ubyte)
+c_aes.expand_key.restype = ctypes.POINTER(ctypes.c_ubyte)
+
 
 class TestEncrypt(unittest.TestCase):
+    
+    def test_key_matrices(self):
+    
+        key= b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63'
+        
+        key_arr = (ctypes.c_ubyte * len(key))(*key)
+        
+        key_matrices_c= c_aes.expand_key(key_arr)
+        
+        c_bytes = bytes(key_matrices_c[:16]) 
+        
+        converted_c_bytes=bytes2matrix(c_bytes)
+        
+        key_matrices_python=(AES(key)._key_matrices)[0]
+        
+        self.assertEqual(converted_c_bytes,key_matrices_python)
+        
 
     def test_c_aes_encrypt_block(self):
         
@@ -37,7 +59,7 @@ class TestEncrypt(unittest.TestCase):
 
         # Calling the AES encrypt function in main.c
         encrypted_data = c_aes.aes_encrypt_block(plaintext_arr, key_arr)
-
+        
         # Converting the encrypted data back to byte
         c_encrypted_bytes = bytes(encrypted_data[:16]) 
         
