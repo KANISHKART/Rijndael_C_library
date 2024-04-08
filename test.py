@@ -26,6 +26,7 @@ c_aes.shift_rows.argtypes=[ctypes.POINTER(ctypes.c_ubyte)]
 c_aes.invert_shift_rows.argtypes=[ctypes.POINTER(ctypes.c_ubyte)]
 c_aes.add_round_key.argtypes=[ctypes.POINTER(ctypes.c_ubyte),ctypes.POINTER(ctypes.c_ubyte),ctypes.c_int,ctypes.c_int]
 c_aes.mixColumns.argtypes=[ctypes.POINTER(ctypes.c_ubyte)]
+c_aes.invert_mix_columns.argtypes=[ctypes.POINTER(ctypes.c_ubyte)]
 
 # the below line sets the response type for the aes_encrypt_block function
 c_aes.aes_encrypt_block.restype = ctypes.POINTER(ctypes.c_ubyte)
@@ -37,7 +38,7 @@ c_aes.shift_rows.restype= ctypes.c_voidp
 c_aes.invert_shift_rows.restype= ctypes.c_voidp
 c_aes.add_round_key.restype= ctypes.c_voidp
 c_aes.mixColumns.restype= ctypes.c_voidp
-
+c_aes.invert_mix_columns.restype= ctypes.c_voidp
 
 class TestEncrypt(unittest.TestCase):
     
