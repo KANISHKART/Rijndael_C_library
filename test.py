@@ -23,6 +23,7 @@ c_aes.expand_key.argtypes=[ctypes.POINTER(ctypes.c_ubyte)]
 c_aes.sub_bytes.argtypes=[ctypes.POINTER(ctypes.c_ubyte),ctypes.c_int]
 c_aes.invert_sub_bytes.argtypes=[ctypes.POINTER(ctypes.c_ubyte),ctypes.c_int]
 c_aes.shift_rows.argtypes=[ctypes.POINTER(ctypes.c_ubyte)]
+c_aes.invert_shift_rows.argtypes=[ctypes.POINTER(ctypes.c_ubyte)]
 
 # the below line sets the response type for the aes_encrypt_block function
 c_aes.aes_encrypt_block.restype = ctypes.POINTER(ctypes.c_ubyte)
@@ -31,6 +32,8 @@ c_aes.expand_key.restype = ctypes.POINTER(ctypes.c_ubyte)
 c_aes.sub_bytes.restype= ctypes.c_voidp
 c_aes.invert_sub_bytes.restype= ctypes.c_voidp
 c_aes.shift_rows.restype= ctypes.c_voidp
+c_aes.invert_shift_rows.restype= ctypes.c_voidp
+
 
 class TestEncrypt(unittest.TestCase):
     
@@ -96,11 +99,24 @@ class TestEncrypt(unittest.TestCase):
         
         plaintext_arr = (ctypes.c_ubyte * len(plaintext_c))(*plaintext_c)
         
-        subByte_matrices_c= c_aes.shift_rows(plaintext_arr, 16)
+        c_aes.shift_rows(plaintext_arr, 16)
         
-        subByte_matrices_py=aes.shift_rows(aes.bytes2matrix(plaintext_py))
+        aes.shift_rows(aes.bytes2matrix(plaintext_py))
         
         self.assertEqual(list(plaintext_c),list(plaintext_py))     
+        
+    def test_inv_shift_rows(self):
+    
+        plaintext_c= b'\x32\x14\x2E\x55\x33\x09\x46\x1A\x4A\x11\x13\x11\x04\x08\x06\x63'
+        plaintext_py= b'\x32\x14\x2E\x55\x33\x09\x46\x1A\x4A\x11\x13\x11\x04\x08\x06\x63'
+        
+        plaintext_arr = (ctypes.c_ubyte * len(plaintext_c))(*plaintext_c)
+        
+        c_aes.invert_shift_rows(plaintext_arr, 16)
+        
+        aes.inv_shift_rows(aes.bytes2matrix(plaintext_py))
+        
+        self.assertEqual(list(plaintext_c),list(plaintext_py))
 
     def test_c_aes_encrypt_block(self):
         
