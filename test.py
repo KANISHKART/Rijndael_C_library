@@ -154,6 +154,20 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertEqual(list(plaintext_c),list(plaintext_py)) 
         
+    def test_inv_mixColumns(self):
+    
+        plaintext_c= b'\x32\x14\xAE\x56\x33\x09\x46\x1C\x4B\x11\x13\x11\x04\x08\x06\x63'
+    
+        plaintext_py= b'\x32\x14\xAE\x56\x33\x09\x46\x1C\x4B\x11\x13\x11\x04\x08\x06\x63'
+        
+        plaintext_arr = (ctypes.c_ubyte * len(plaintext_c))(*plaintext_c)
+        
+        c_aes.invert_mix_columns(plaintext_arr)
+        
+        aes.inv_mix_columns(aes.bytes2matrix(plaintext_py))
+        
+        self.assertEqual(list(plaintext_c),list(plaintext_py)) 
+        
     def test_c_aes_encrypt_block(self):
         
         plaintext= b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F'
