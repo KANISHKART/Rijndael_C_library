@@ -204,21 +204,21 @@ class TestEncrypt(unittest.TestCase):
         
     def test_c_aes_decrypt_block(self):
         
-        plaintext= b'\x4b\x95\x86\x93\xb4\xe9\xc4\xeb\x92\xaf\xe8t\xb1\x40\xe0\xce'
+        cipher_text= b'\x4b\x95\x86\x93\xb4\xe9\xc4\xeb\x92\xaf\xe8t\xb1\x40\xe0\xce'
         
         key= b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63'
         
         # Converting plaintext & key into ctypes arrays
-        plaintext_arr = (ctypes.c_ubyte * len(plaintext))(*plaintext)
+        cipher_text_arr = (ctypes.c_ubyte * len(cipher_text))(*cipher_text)
         key_arr = (ctypes.c_ubyte * len(key))(*key)
 
         # Calling the AES decrypt function in main.c
-        decrypted_data = c_aes.aes_decrypt_block(plaintext_arr, key_arr)
+        decrypted_data = c_aes.aes_decrypt_block(cipher_text_arr, key_arr)
 
         # Converting the decrypted data back to byte
         c_decrypted_bytes = bytes(decrypted_data[:16]) 
         
-        py_decrypted_bytes=aes.AES(key).decrypt_block(plaintext)
+        py_decrypted_bytes=aes.AES(key).decrypt_block(cipher_text)
 
         self.assertEqual(c_decrypted_bytes, py_decrypted_bytes)
         

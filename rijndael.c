@@ -1,11 +1,12 @@
 /*
  -- Author      : KANISHKAR THIRUNAVUKKARASU 
  -- Student No  : D23124630
- -- Description : This code contains the core logic for AES Encryption.
+ -- Description : This code contains the core logic for AES-128 bit Encryption implemented in C.
+                  Inspiration from : https://formaestudio.com/rijndaelinspector/archivos/Rijndael_Animation_v4_eng-html5.html
+                  Python Implementation for AES : https://github.com/boppreh/aes
  */
 
 #include <stdlib.h>
-// TODO: Any other files you need to include should go here
 #include <stdio.h>
 #include "rijndael.h"
 
@@ -56,9 +57,6 @@ unsigned char r_con[32] ={
     0xD4, 0xB3, 0x7D, 0xFA, 0xEF, 0xC5, 0x91, 0x39
 };
 
-/*
- * Operations used when encrypting a block
- */
 
 
 // Substituting the elemenets from S-BOX lookup table.
