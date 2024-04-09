@@ -42,6 +42,9 @@ c_aes.invert_mix_columns.restype= ctypes.c_voidp
 
 class TestEncrypt(unittest.TestCase):
     
+    ''' 
+        Testing Key matrices
+    '''
     def test_key_matrices(self):
     
         key= b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63'
@@ -57,7 +60,11 @@ class TestEncrypt(unittest.TestCase):
         key_matrices_python=(aes.AES(key)._key_matrices)[0]
         
         self.assertEqual(converted_c_bytes,key_matrices_python)
+
         
+    ''' 
+        Testing Sub Bytes
+    '''
     def test_sub_bytes(self):
     
         plaintext_c= b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63'
@@ -71,6 +78,10 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertEqual(list(plaintext_c),list(plaintext_py))
         
+        
+    ''' 
+        Testing Sub Bytes failure case 
+    '''
     def test_fail_sub_bytes(self):
     
         plaintext_c= b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x12\x33\x11\x04\x08\x06\x63'
@@ -84,6 +95,10 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertNotEqual(list(plaintext_c),list(plaintext_py))
     
+    
+    ''' 
+        Testing invert Sub Bytes
+    '''
     def test_inv_sub_bytes(self):
     
         plaintext_c= b'\x32\x14\x2E\x56\x43\x09\x46\x1B\x4B\x11\x33\x11\x04\x08\x06\x63'
@@ -97,6 +112,9 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertEqual(list(plaintext_c),list(plaintext_py))
    
+    ''' 
+        Testing shift rows
+    '''
     def test_shift_rows(self):
     
         plaintext_c= b'\x32\x14\x2E\x56\x33\x09\x46\x1A\x4B\x11\x13\x11\x04\x08\x06\x63'
@@ -110,6 +128,10 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertEqual(list(plaintext_c),list(plaintext_py))     
         
+        
+    ''' 
+        Testing invert shift rows
+    '''
     def test_inv_shift_rows(self):
     
         plaintext_c= b'\x32\x14\x2E\x55\x33\x09\x46\x1A\x4A\x11\x13\x11\x04\x08\x06\x63'
@@ -123,6 +145,10 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertEqual(list(plaintext_c),list(plaintext_py))
 
+
+    ''' 
+        Testing round key
+    '''
     def test_add_round_key(self):
     
         plaintext_c= b'\x32\x14\x2E\x56\x33\x09\x46\x1A\x4B\x11\x13\x11\x04\x08\x06\x63'
@@ -140,6 +166,9 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertEqual(list(plaintext_c),list(plaintext_py)) 
         
+    ''' 
+        Testing mix Columns
+    '''
     def test_mixColumns(self):
     
         plaintext_c= b'\x32\x14\x2E\x56\x33\x09\x46\x1A\x4B\x11\x13\x11\x04\x08\x06\x63'
@@ -154,6 +183,9 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertEqual(list(plaintext_c),list(plaintext_py)) 
         
+    ''' 
+        Testing invert mix Columns
+    '''
     def test_inv_mixColumns(self):
     
         plaintext_c= b'\x32\x14\xAE\x56\x33\x09\x46\x1C\x4B\x11\x13\x11\x04\x08\x06\x63'
@@ -168,6 +200,9 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertEqual(list(plaintext_c),list(plaintext_py)) 
     
+    ''' 
+        Testing failure invert mix Columns case
+    '''
     def test_fail_inv_mixColumns(self):
     
         plaintext_c= b'\x32\x13\xAE\x56\x33\x09\x46\x1C\x4B\x11\x13\x11\x04\x08\x06\x63'
@@ -182,6 +217,9 @@ class TestEncrypt(unittest.TestCase):
         
         self.assertNotEqual(list(plaintext_c),list(plaintext_py)) 
         
+    ''' 
+        Testing AES-128 bit encrypt function
+    '''
     def test_c_aes_encrypt_block(self):
         
         plaintext= b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F'
@@ -201,7 +239,10 @@ class TestEncrypt(unittest.TestCase):
         py_encrypted_bytes=aes.AES(key).encrypt_block(plaintext)
 
         self.assertEqual(c_encrypted_bytes, py_encrypted_bytes)
-        
+    
+    ''' 
+        Testing AES-128 bit decrypt function
+    '''  
     def test_c_aes_decrypt_block(self):
         
         cipher_text= b'\x4b\x95\x86\x93\xb4\xe9\xc4\xeb\x92\xaf\xe8t\xb1\x40\xe0\xce'
